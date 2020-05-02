@@ -1,0 +1,10 @@
+func test(string)
+	var data = call test2(string)
+	func test2(string)
+		//call print(string)
+		ret "there"
+	end
+	//call println(data)
+end
+call test("Hello ")
+ret "test"
