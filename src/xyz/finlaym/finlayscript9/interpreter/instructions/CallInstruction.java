@@ -2,6 +2,7 @@ package xyz.finlaym.finlayscript9.interpreter.instructions;
 
 import java.util.List;
 
+import xyz.finlaym.finlayscript9.coreinst.CoreCalls;
 import xyz.finlaym.finlayscript9.interpreter.Environment;
 import xyz.finlaym.finlayscript9.interpreter.Function;
 import xyz.finlaym.finlayscript9.interpreter.Interpreter;
@@ -24,6 +25,12 @@ public class CallInstruction extends Instruction{
 		String args = split[1].substring(0, split[1].lastIndexOf(")"));
 		Function f = findFunction(getPointer(),p.getRootFunctions());
 		Instruction[] instructions = Parser.parseArguments(args, findFunctionInParent(name, f,p),pubEnv,privEnv);
+		
+		// Core functions stuff
+		if(CoreCalls.isCoreCall(newInst)) {
+			return CoreCalls.execute(p, pubEnv, privEnv, newInst);
+		}
+		
 		Result r = Interpreter.executeFunction(p, f,name, instructions);
 		return r;
 	}

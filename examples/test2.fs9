@@ -1,0 +1,3 @@
+func test3()
+	ret "test4"
+end

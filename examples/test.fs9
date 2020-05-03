@@ -1,3 +1,4 @@
+//#include examples/test2.fs9
 func test(string)
 	var data = call test2(string)
 	func test2(string)
@@ -6,5 +7,11 @@ func test(string)
 	end
 	//call println(data)
 end
+func test3()
+	ret "test3"
+end
 call test("Hello ")
+var eval = call test3()
+call print(var eval)
+call print("\n")
 ret "test"

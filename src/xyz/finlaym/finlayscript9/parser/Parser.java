@@ -1,7 +1,9 @@
 package xyz.finlaym.finlayscript9.parser;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import xyz.finlaym.finlayscript9.interpreter.Environment;
 import xyz.finlaym.finlayscript9.interpreter.Function;
@@ -16,13 +18,27 @@ public class Parser {
 	private static final long BASE_POINTER = 4096;
 	
 	public static Program parse(List<String> programLines) throws Exception{
+		// Start pass #1 to find dependencies
+		int length = programLines.size();
+		for(int i = 0; i < length; i++) {
+			String line = programLines.get(i);
+			if(line.startsWith("#include")) {
+				File f = new File(line.substring(9));
+				Scanner in = new Scanner(f);
+				while(in.hasNextLine()) {
+					programLines.add(in.nextLine());
+				}
+				in.close();
+			}
+		}
+
 		Program program = new Program(BASE_POINTER,programLines);
-		// Start pass #1 to find functions
+		// Start pass #2 to find functions
 		Function root = null;
 		long pointer = program.getBasePointer()+programLines.size();
 		for(int i = 0; i < programLines.size(); i++) {
 			String line = programLines.get(i).trim();
-			if(line.startsWith("//"))
+			if(line.startsWith("//") || line.startsWith("#include "))
 				continue;
 			if(line.startsWith("func ")) {
 				line = line.substring(5);
@@ -46,7 +62,7 @@ public class Parser {
 			pointer++;
 		}
 		
-		// Start pass #2 to parse functions
+		// Start pass #3 to parse functions
 		List<Function> newRootFunctions = new ArrayList<Function>();
 		for(Function f : program.getRootFunctions()) {
 			recursiveFunctionIndex(f,program);
@@ -54,10 +70,10 @@ public class Parser {
 		}
 		program.setRootFunctions(newRootFunctions);
 		int count = 0;
-		// Start pass #3 to parse instructions outside of functions
+		// Start pass #4 to parse instructions outside of functions
 		for(int i = 0; i < programLines.size(); i++) {
 			String line = programLines.get(i).trim();
-			if(line.startsWith("//"))
+			if(line.startsWith("//") || line.startsWith("#include "))
 				continue;
 			if(line.startsWith("func ")) {
 				count++;
@@ -83,6 +99,10 @@ public class Parser {
 			String line = program.getLines().get(i1).trim();
 			if(line.startsWith("//"))
 				continue;
+			if(count < 0)
+				break;
+			if(count != 1 && !line.startsWith("func ") && !line.startsWith("end "))
+				continue;
 			if(line.startsWith("func ")) {
 				count++;
 				continue;
@@ -90,10 +110,6 @@ public class Parser {
 				count--;
 				continue;
 			}
-			if(count < 0)
-				break;
-			if(count != 1)
-				continue;
 			Instruction inst = parseInstruction(f.getPointer(),index,line,null,null);
 			f.getInstructions().add(inst);
 			index++;
@@ -128,6 +144,8 @@ public class Parser {
 		throw new RuntimeException("Instruction type not found for "+inst+"!");
 	}
 	public static Instruction[] parseArguments(String arguments, Function f, Environment pubEnv, Environment privEnv) {
+		if(arguments.trim().isEmpty())
+			return new Instruction[0];
 		String[] split = arguments.split(",");
 		Instruction[] inst = new Instruction[split.length];
 		for(int i = 0; i < split.length; i++) {
